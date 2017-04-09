@@ -11,6 +11,11 @@ var del = require('del');
 var runSequence = require('run-sequence');
 var jshint = require('gulp-jshint');
 var stylish = require('jshint-stylish');
+var ghPages = require('gulp-gh-pages-cname');
+var prompt = require('gulp-prompt');
+var Q = require('q');
+
+var message = '';
 
 // ---------- MAIN TASKS ---------- //
 gulp.task('serve', function(callback) {
@@ -23,6 +28,38 @@ gulp.task('build', function(callback) {
         'sass',
         ['create:dist', 'images', 'fonts'],
         callback);
+});
+
+gulp.task('deploy', function(callback) {
+    runSequence('build', 'commit', 'push');
+});
+
+// ---------- DEPLOYMENT TASKS ---------- //
+// Takes commit message and assigns it to message variable
+gulp.task('commit', function() {
+    var deferred = Q.defer();
+
+    gulp.src('./dist/**/*')
+    .pipe(prompt.prompt({
+        type: 'input',
+        name: 'message',
+        message: 'What is your commit message?'
+    }, function(res){
+        message = res.message
+        deferred.resolve();
+    }));
+
+    return deferred.promise;
+});
+
+// Pushes changes to gh-pages with given commit message and CNAME file
+gulp.task('push', function() {
+    return gulp.src('./dist/**/*')
+    .pipe(ghPages({
+        cname: 'wegielpruszkow.pl',
+        message: message,
+        cacheDir: '.dist'
+    }));
 });
 
 // ---------- DEVELOPMENT TASKS ---------- //
@@ -43,7 +80,7 @@ gulp.task('watch', function() {
     gulp.watch('./src/scripts/main.js').on('change', browserSync.reload);
 });
 
-// Compile .scss into .css & auto-inject into browser
+// Compiles .scss into .css & auto-inject into browser
 gulp.task('sass', function() {
     return gulp.src('./src/scss/styles.scss')
         .pipe(sass({
@@ -73,7 +110,7 @@ gulp.task('create:dist', function () {
 
 // Minifies and creates .images in .dist
 gulp.task('images', function(){
-    return gulp.src('./src/images/**/*.+(png|jpg|gif|svg)')
+    return gulp.src('./src/images/**/*.+(png|jpg|gif|svg|ico)')
         // Caching images that ran through imagemin
         .pipe(cache(imagemin({
             interlaced: true
