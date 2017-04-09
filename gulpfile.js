@@ -22,19 +22,21 @@ gulp.task('serve', function(callback) {
     runSequence('browserSync', 'watch', callback);
 });
 
+gulp.task('deploy', function(callback) {
+    runSequence('build', 'commit', 'push', callback);
+});
+
+// ---------- DEPLOYMENT TASKS ---------- //
+// Builds dist directory
 gulp.task('build', function(callback) {
     runSequence(
         'clean:dist',
         'sass',
         ['create:dist', 'images', 'fonts'],
-        callback);
+        callback
+    );
 });
 
-gulp.task('deploy', function(callback) {
-    runSequence('build', 'commit', 'push');
-});
-
-// ---------- DEPLOYMENT TASKS ---------- //
 // Takes commit message and assigns it to message variable
 gulp.task('commit', function() {
     var deferred = Q.defer();
